@@ -56,11 +56,7 @@ class Payment(db.Model):
     amount = db.Column(db.Float, nullable=False)
     status = db.Column(db.Enum('Paid', 'Pending'), nullable=False)
     student = db.relationship('Student', backref=db.backref('payments', lazy=True))
-
-
 # ✅ Authentication Middleware
-
-
 # ✅ User Registration
 @app.route('/register', methods=['POST'])
 def register():
@@ -183,8 +179,6 @@ def get_payments(current_user, student_id):
     records = [{'date': p.date.strftime("%Y-%m-%d"), 'amount': p.amount, 'status': p.status} for p in payments]
     return jsonify(records)
 
-
-
 # ✅ Export Student Data as CSV
 @app.route('/export/students', methods=['GET'])
 def export_students():
@@ -208,7 +202,6 @@ def teacher_dashboard(current_user):
 @token_required(['Admin', 'Staff'])
 def staff_panel(current_user):
     return jsonify({'message': 'Welcome, Staff! You can manage attendance.'})
-
 
 # ✅ Initialize Database Without `before_first_request`
 if __name__ == '__main__':
