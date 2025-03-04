@@ -59,27 +59,7 @@ class Payment(db.Model):
 
 
 # ✅ Authentication Middleware
-from functools import wraps
-import jwt
-from flask import request, jsonify
 
-def token_required(allowed_roles):
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            token = request.headers.get('x-access-token')
-            if not token:
-                return jsonify({'message': 'Token is missing!'}), 403
-            try:
-                data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-                current_user = User.query.filter_by(id=data['user_id']).first()
-                if not current_user or current_user.role not in allowed_roles:
-                    return jsonify({'message': 'Unauthorized access!'}), 403
-            except:
-                return jsonify({'message': 'Invalid token!'}), 403
-            return f(current_user, *args, **kwargs)
-        return decorated_function
-    return decorator
 
 # ✅ User Registration
 @app.route('/register', methods=['POST'])
@@ -101,6 +81,28 @@ def login():
                            app.config['SECRET_KEY'], algorithm='HS256')
         return jsonify({'token': token, 'role': user.role})
     return jsonify({'message': 'Invalid credentials!'}), 401
+
+from functools import wraps
+import jwt
+from flask import request, jsonify
+
+def token_required(allowed_roles):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            token = request.headers.get('x-access-token')
+            if not token:
+                return jsonify({'message': 'Token is missing!'}), 403
+            try:
+                data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+                current_user = User.query.filter_by(id=data['user_id']).first()
+                if not current_user or current_user.role not in allowed_roles:
+                    return jsonify({'message': 'Unauthorized access!'}), 403
+            except:
+                return jsonify({'message': 'Invalid token!'}), 403
+            return f(current_user, *args, **kwargs)
+        return decorated_function
+    return decorator
 
 # ✅ Dashboard API: Student Statistics
 @app.route('/dashboard/students', methods=['GET'])
