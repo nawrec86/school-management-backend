@@ -126,6 +126,65 @@ def finance_dashboard():
         'total_expense': total_expense
     })
 
+from datetime import datetime
+
+# ✅ Mark Attendance for a Student
+@app.route('/attendance', methods=['POST'])
+@token_required(['Admin', 'Teacher'])
+def mark_attendance(current_user):
+    data = request.json
+    student = Student.query.get(data['student_id'])
+    if not student:
+        return jsonify({'message': 'Student not found'}), 404
+
+    new_attendance = Attendance(
+        student_id=student.id,
+        date=datetime.strptime(data['date'], "%Y-%m-%d"),
+        status=data['status']
+    )
+    db.session.add(new_attendance)
+    db.session.commit()
+
+    return jsonify({'message': 'Attendance recorded successfully'})
+
+# ✅ Get Attendance Records
+@app.route('/attendance/<int:student_id>', methods=['GET'])
+@token_required(['Admin', 'Teacher'])
+def get_attendance(current_user, student_id):
+    attendance_records = Attendance.query.filter_by(student_id=student_id).all()
+    records = [{'date': a.date.strftime("%Y-%m-%d"), 'status': a.status} for a in attendance_records]
+    return jsonify(records)
+
+# ✅ Make a Payment for a Student
+@app.route('/payment', methods=['POST'])
+@token_required(['Admin', 'Staff'])
+def make_payment(current_user):
+    data = request.json
+    student = Student.query.get(data['student_id'])
+    if not student:
+        return jsonify({'message': 'Student not found'}), 404
+
+    new_payment = Payment(
+        student_id=student.id,
+        date=datetime.strptime(data['date'], "%Y-%m-%d"),
+        amount=data['amount'],
+        status=data['status']
+    )
+    db.session.add(new_payment)
+    db.session.commit()
+
+    return jsonify({'message': 'Payment recorded successfully'})
+
+# ✅ Get Payment History
+@app.route('/payments/<int:student_id>', methods=['GET'])
+@token_required(['Admin', 'Staff'])
+def get_payments(current_user, student_id):
+    payments = Payment.query.filter_by(student_id=student_id).all()
+    records = [{'date': p.date.strftime("%Y-%m-%d"), 'amount': p.amount, 'status': p.status} for p in payments]
+    return jsonify(records)
+
+
+
 # ✅ Export Student Data as CSV
 @app.route('/export/students', methods=['GET'])
 def export_students():
