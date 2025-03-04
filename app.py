@@ -42,6 +42,7 @@ class Finance(db.Model):
     amount = db.Column(db.Float, nullable=False)
     type = db.Column(db.Enum('Income', 'Expense'), nullable=False)
 
+# ✅ Attendance Model
 class Attendance(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
@@ -49,6 +50,7 @@ class Attendance(db.Model):
     status = db.Column(db.Enum('Present', 'Absent', 'Late'), nullable=False)
     student = db.relationship('Student', backref=db.backref('attendance', lazy=True))
 
+# ✅ Payment Model
 class Payment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
@@ -56,7 +58,7 @@ class Payment(db.Model):
     amount = db.Column(db.Float, nullable=False)
     status = db.Column(db.Enum('Paid', 'Pending'), nullable=False)
     student = db.relationship('Student', backref=db.backref('payments', lazy=True))
-# ✅ Authentication Middleware
+
 # ✅ User Registration
 @app.route('/register', methods=['POST'])
 def register():
@@ -78,10 +80,7 @@ def login():
         return jsonify({'token': token, 'role': user.role})
     return jsonify({'message': 'Invalid credentials!'}), 401
 
-from functools import wraps
-import jwt
-from flask import request, jsonify
-
+# ✅ Authentication Middleware
 def token_required(allowed_roles):
     def decorator(f):
         @wraps(f)
@@ -121,8 +120,6 @@ def finance_dashboard():
         'total_income': total_income,
         'total_expense': total_expense
     })
-
-from datetime import datetime
 
 # ✅ Mark Attendance for a Student
 @app.route('/attendance', methods=['POST'])
@@ -188,16 +185,20 @@ def export_students():
     file_path = "students_export.csv"
     df.to_csv(file_path, index=False)
     return jsonify({'message': 'File ready for download', 'file': file_path})
-    @app.route('/admin-only', methods=['GET'])
+
+# ✅ Admin-only route
+@app.route('/admin-only', methods=['GET'])
 @token_required(['Admin'])
 def admin_only(current_user):
     return jsonify({'message': 'Welcome, Admin! This is a protected route.'})
 
+# ✅ Teacher dashboard route
 @app.route('/teacher-dashboard', methods=['GET'])
 @token_required(['Admin', 'Teacher'])
 def teacher_dashboard(current_user):
     return jsonify({'message': 'Welcome, Teacher! You have access to this data.'})
 
+# ✅ Staff panel route
 @app.route('/staff-panel', methods=['GET'])
 @token_required(['Admin', 'Staff'])
 def staff_panel(current_user):
