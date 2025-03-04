@@ -133,6 +133,21 @@ def export_students():
     file_path = "students_export.csv"
     df.to_csv(file_path, index=False)
     return jsonify({'message': 'File ready for download', 'file': file_path})
+    @app.route('/admin-only', methods=['GET'])
+@token_required(['Admin'])
+def admin_only(current_user):
+    return jsonify({'message': 'Welcome, Admin! This is a protected route.'})
+
+@app.route('/teacher-dashboard', methods=['GET'])
+@token_required(['Admin', 'Teacher'])
+def teacher_dashboard(current_user):
+    return jsonify({'message': 'Welcome, Teacher! You have access to this data.'})
+
+@app.route('/staff-panel', methods=['GET'])
+@token_required(['Admin', 'Staff'])
+def staff_panel(current_user):
+    return jsonify({'message': 'Welcome, Staff! You can manage attendance.'})
+
 
 # ✅ Initialize Database Without `before_first_request`
 if __name__ == '__main__':
