@@ -42,6 +42,22 @@ class Finance(db.Model):
     amount = db.Column(db.Float, nullable=False)
     type = db.Column(db.Enum('Income', 'Expense'), nullable=False)
 
+class Attendance(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    status = db.Column(db.Enum('Present', 'Absent', 'Late'), nullable=False)
+    student = db.relationship('Student', backref=db.backref('attendance', lazy=True))
+
+class Payment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    status = db.Column(db.Enum('Paid', 'Pending'), nullable=False)
+    student = db.relationship('Student', backref=db.backref('payments', lazy=True))
+
+
 # ✅ Authentication Middleware
 from functools import wraps
 import jwt
