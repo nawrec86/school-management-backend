@@ -43,7 +43,11 @@ class Finance(db.Model):
     type = db.Column(db.Enum('Income', 'Expense'), nullable=False)
 
 # ✅ Authentication Middleware
-def token_required(role_required):
+from functools import wraps
+import jwt
+from flask import request, jsonify
+
+def token_required(allowed_roles):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
@@ -53,7 +57,7 @@ def token_required(role_required):
             try:
                 data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
                 current_user = User.query.filter_by(id=data['user_id']).first()
-                if not current_user or current_user.role != role_required:
+                if not current_user or current_user.role not in allowed_roles:
                     return jsonify({'message': 'Unauthorized access!'}), 403
             except:
                 return jsonify({'message': 'Invalid token!'}), 403
