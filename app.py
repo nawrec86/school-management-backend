@@ -1,87 +1,69 @@
-from flask import Flask, jsonify, request, send_file
+from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from flask_cors import CORS
-from werkzeug.security import generate_password_hash, check_password_hash
-import jwt
-from datetime import datetime, timedelta
-import os
-from functools import wraps
-import pandas as pd
 
+# Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+CORS(app)  # Enable CORS for frontend interaction
 
-# Database Configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI', 'sqlite:///school_management.db')
+# Database Configuration (Change as needed)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///school_management.db'  # Use SQLite (or update for PostgreSQL/MySQL)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your_secret_key')
 
+# Initialize Database & Migration
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
-# Models (User, Student, Finance, Attendance, Payment)
+# User Model
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.Enum('Admin', 'Teacher', 'Staff', 'Student'), nullable=False)
+    first_name = db.Column(db.String(100), nullable=False)
+    last_name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    password = db.Column(db.String(255), nullable=False)  # Should be hashed in production
+    role = db.Column(db.String(50), nullable=False, default="User")
 
+    __table_args__ = (
+        db.UniqueConstraint('email', name='uq_user_email'),  # ✅ Ensuring named constraints
+    )
+
+# Student Model
 class Student(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    first_name = db.Column(db.String(50), nullable=False)
-    last_name = db.Column(db.String(50), nullable=False)
-    gender = db.Column(db.Enum('Male', 'Female', 'Other'), nullable=False)
-    grade = db.Column(db.String(10), nullable=False)
-    fee = db.Column(db.Float, nullable=False)
+    first_name = db.Column(db.String(100), nullable=False)
+    last_name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
 
-class Finance(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.Date, nullable=False)
-    category = db.Column(db.String, nullable=False)
-    amount = db.Column(db.Float, nullable=False)
-    type = db.Column(db.Enum('Income', 'Expense'), nullable=False)
+# Test API Route
+@app.route('/')
+def home():
+    return jsonify({"message": "Welcome to the School Management API!"})
 
-class Attendance(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
-    date = db.Column(db.Date, nullable=False)
-    status = db.Column(db.Enum('Present', 'Absent', 'Late'), nullable=False)
-    student = db.relationship('Student', backref=db.backref('attendance', lazy=True))
-
-class Payment(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
-    date = db.Column(db.Date, nullable=False)
-    amount = db.Column(db.Float, nullable=False)
-    status = db.Column(db.Enum('Paid', 'Pending'), nullable=False)
-    student = db.relationship('Student', backref=db.backref('payments', lazy=True))
-
-# Routes (Register, Login, Dashboard, Attendance, Payment, Export)
+# Register User API
 @app.route('/register', methods=['POST'])
 def register():
     data = request.json
-    hashed_password = generate_password_hash(data['password'], method='sha256')
-    new_user = User(username=data['username'], password_hash=hashed_password, role=data['role'])
+    if not data.get('email') or not data.get('password'):
+        return jsonify({'message': 'Email and password are required'}), 400
+
+    new_user = User(
+        first_name=data.get('first_name', 'Unknown'),
+        last_name=data.get('last_name', 'Unknown'),
+        email=data['email'],
+        password=data['password'],  # Hash before storing
+        role=data.get('role', 'User')
+    )
     db.session.add(new_user)
     db.session.commit()
-    return jsonify({'message': 'User registered successfully!'})
+    return jsonify({'message': 'User registered successfully'}), 201
 
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.json
-    user = User.query.filter_by(username=data['username']).first()
-    if user and check_password_hash(user.password_hash, data['password']):
-        token = jwt.encode(
-            {'user_id': user.id, 'role': user.role, 'exp': datetime.utcnow() + timedelta(hours=1)},
-            app.config['SECRET_KEY'],
-            algorithm='HS256'
-        )
-        return jsonify({'token': token, 'role': user.role})
-    return jsonify({'message': 'Invalid credentials!'}), 401
+# Get Students API
+@app.route('/students', methods=['GET'])
+def get_students():
+    students = Student.query.all()
+    return jsonify([{'id': s.id, 'name': f"{s.first_name} {s.last_name}", 'email': s.email} for s in students])
 
-# Other routes remain the same...
-
-# Initialize Database
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
+# Run the Flask App
+if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
