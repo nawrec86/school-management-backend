@@ -35,6 +35,9 @@ class Student(db.Model):
     last_name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
 
+@app.route('/version', methods=['GET'])
+def version():
+    return jsonify({"version": "1.0.0", "status": "Running"})
 # Test API Route
 @app.route('/')
 def home():
